@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linux Administration: Visual Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#F3F6F8; --surface:#FFFFFF; --ink:#14202B; --muted:#586977; --line:#D8E0E6;
+  --accent:#0F766E; --accent-soft:#DDF1EE; --warn:#B45309; --warn-soft:#FBEBD6;
+  --root:#B42318; --root-soft:#FBE3E0; --code-bg:#E9EFF3; --code-ink:#0B3B4A;
+  --font:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E161E; --surface:#16212C; --ink:#E6EDF3; --muted:#95A6B5; --line:#263646;
+    --accent:#3FC7B6; --accent-soft:#12332F; --warn:#F2A650; --warn-soft:#3A2B14;
+    --root:#F47C6E; --root-soft:#3C1E1B; --code-bg:#1D2B39; --code-ink:#9BE3F2;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E161E; --surface:#16212C; --ink:#E6EDF3; --muted:#95A6B5; --line:#263646;
+  --accent:#3FC7B6; --accent-soft:#12332F; --warn:#F2A650; --warn-soft:#3A2B14;
+  --root:#F47C6E; --root-soft:#3C1E1B; --code-bg:#1D2B39; --code-ink:#9BE3F2;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.55}
+code,kbd,.mono{font-family:var(--mono)}
+code{background:var(--code-bg);color:var(--code-ink);padding:.12em .42em;border-radius:5px;font-size:.88em;white-space:nowrap}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
+header.hero{padding:44px 0 28px}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.05;margin:0 0 12px;letter-spacing:-.02em;font-weight:700}
+.sub{color:var(--muted);max-width:60ch;margin:0}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+nav a{flex:none;text-decoration:none;color:var(--muted);font-weight:500;font-size:.92rem;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+nav a:hover,nav a:focus-visible{color:var(--ink);border-color:var(--line);outline:none}
+nav a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+section{padding:44px 0 8px}
+h2{font-size:1.6rem;margin:0 0 6px;letter-spacing:-.01em}
+h3{font-size:1.05rem;margin:0 0 10px}
+.lead{color:var(--muted);margin:0 0 22px;max-width:65ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+.stack>*+*{margin-top:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:.85rem;background:var(--code-bg);color:var(--code-ink);padding:4px 10px;border-radius:6px}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 8px 8px 0;margin:16px 0 0;font-size:.95rem}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note.root{border-color:var(--root);background:var(--root-soft)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:.95rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+.tag{display:inline-block;font-size:.8rem;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.tag.root{background:var(--root-soft);color:var(--root)}
+.prompt{font-family:var(--mono);font-size:1.8rem;font-weight:600;margin:0 0 6px}
+/* command rows */
+.rows{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:6px 20px;padding:14px 18px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+@media (max-width:640px){.row{grid-template-columns:1fr}}
+.row .q{font-weight:600}
+.row .c code{display:inline-block;white-space:normal;word-break:break-word}
+.row .n{margin:6px 0 0;color:var(--muted);font-size:.92rem}
+.row .n code{font-size:.82em}
+/* roles */
+.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;justify-content:flex-end}
+.step b{display:block}
+.step .perm{font-family:var(--mono);font-size:.85rem;color:var(--accent);margin-top:2px}
+.step:nth-child(1){min-height:84px}.step:nth-child(2){min-height:110px}.step:nth-child(3){min-height:136px}.step:nth-child(4){min-height:162px;border-color:var(--accent)}
+@media (max-width:640px){.ladder{grid-template-columns:1fr 1fr}.step{min-height:0!important}}
+/* permission string */
+.permstr{display:flex;gap:4px;font-family:var(--mono);font-size:clamp(1.1rem,4.5vw,1.9rem);font-weight:600;flex-wrap:nowrap}
+.permstr span{padding:6px 10px;border-radius:8px;text-align:center}
+.p-type{background:var(--code-bg)} .p-u{background:var(--accent-soft);color:var(--accent)}
+.p-g{background:var(--warn-soft);color:var(--warn)} .p-o{background:var(--root-soft);color:var(--root)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88rem;color:var(--muted);margin-top:10px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+/* calculator */
+table.calc{border-collapse:collapse;width:100%;max-width:420px}
+.calc th,.calc td{padding:8px 6px;text-align:center;font-weight:500}
+.calc th{color:var(--muted);font-size:.88rem}
+.calc td:first-child,.calc th:first-child{text-align:left}
+.calc input{width:22px;height:22px;accent-color:var(--accent);cursor:pointer}
+.out{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.big{font-family:var(--mono);font-size:2.2rem;font-weight:600;color:var(--accent);line-height:1}
+.btn{font:inherit;font-size:.88rem;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent)} .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.vals{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.vals span{font-family:var(--mono);font-size:.82rem;background:var(--code-bg);color:var(--code-ink);padding:3px 8px;border-radius:6px}
+/* matrix */
+.matrix{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;font-size:.9rem}
+.matrix .h{color:var(--muted);font-weight:600;align-self:center}
+.matrix .cell{background:var(--code-bg);border-radius:8px;padding:10px}
+.matrix .cell code{display:block;background:none;padding:0;color:var(--code-ink);white-space:normal;word-break:break-all}
+/* flow */
+.flow{list-style:none;margin:0;padding:0;counter-reset:s}
+.flow li{counter-increment:s;position:relative;padding:0 0 18px 46px}
+.flow li::before{content:counter(s);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--surface);font-weight:700;display:grid;place-items:center;font-size:.9rem}
+.flow li::after{content:"";position:absolute;left:14px;top:34px;bottom:4px;width:2px;background:var(--line)}
+.flow li:last-child{padding-bottom:0}.flow li:last-child::after{display:none}
+.flow b{display:block}
+.flow .d{color:var(--muted);font-size:.93rem}
+/* vim */
+.vimsvg{width:100%;height:auto;display:block}
+.vimsvg text{font-family:var(--font);fill:var(--ink)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:baseline;margin:0;font-size:.94rem}
+.keys dt kbd,kbd{font-family:var(--mono);font-size:.85rem;background:var(--surface);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 8px;white-space:nowrap;color:var(--ink)}
+.keys dd{margin:0;color:var(--muted)}
+.foot{padding:40px 0 60px;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Linux administration, on one page</h1>
+    <p class="sub">Users, groups, permissions, sudo, SSH and Vim. Find the task you want, copy the command, read what each flag does.</p>
+  </div>
+</header>
+
+<nav aria-label="Sections">
+  <div class="wrap">
+    <a href="#basics">Basics</a>
+    <a href="#users">Users &amp; groups</a>
+    <a href="#perms">Permissions</a>
+    <a href="#sudo">Sudo</a>
+    <a href="#ssh">SSH</a>
+    <a href="#vim">Vim</a>
+    <a href="#devops">DevOps context</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- BASICS -->
+<section id="basics">
+  <h2>Basics</h2>
+  <p class="lead">Learn how to read the documentation, not every flag. Pick the command, check its options, pass the inputs. Practice turns it into muscle memory.</p>
+
+  <div class="panel">
+    <h3>Everyday commands</h3>
+    <div class="chips">
+      <span class="chip">touch</span><span class="chip">mkdir</span><span class="chip">ls -l</span><span class="chip">cat</span><span class="chip">grep</span><span class="chip">head</span><span class="chip">tail</span><span class="chip">cut</span><span class="chip">awk</span><span class="chip">tar</span>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">Two kinds of users</h3>
+  <div class="grid2">
+    <div class="panel">
+      <p class="prompt">$</p>
+      <span class="tag">Normal user</span>
+      <dl class="kv" style="margin-top:14px">
+        <dt>UID</dt><dd><code>≥ 1000</code> (for example 1001 for ramesh)</dd>
+        <dt>Home</dt><dd><code>/home/&lt;username&gt;</code> (for example <code>/home/ec2-user</code>)</dd>
+        <dt>Power</dt><dd>Limited. Cannot install packages or change system config without elevation.</dd>
+      </dl>
+    </div>
+    <div class="panel" style="border-color:var(--root)">
+      <p class="prompt" style="color:var(--root)">#</p>
+      <span class="tag root">Admin / root</span>
+      <dl class="kv" style="margin-top:14px">
+        <dt>UID</dt><dd><code>0</code></dd>
+        <dt>Home</dt><dd><code>/root</code> (separate from <code>/home</code>)</dd>
+        <dt>Power</dt><dd>Unrestricted, full access to the OS.</dd>
+        <dt>Switch</dt><dd><code>sudo su -</code></dd>
+      </dl>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">Authentication vs. authorization</h3>
+  <div class="grid2">
+    <div class="panel"><b>Authentication</b> asks “Are you in the system?”<br><span style="color:var(--muted)">Like showing your employee ID card at the front gate.</span></div>
+    <div class="panel"><b>Authorization</b> asks “Can you use this resource?”<br><span style="color:var(--muted)">Like having access to one project room or database.</span></div>
+  </div>
+
+  <h3 style="margin-top:28px">Groups map to roles (CRUD)</h3>
+  <div class="ladder">
+    <div class="step"><b>Trainee</b><span class="perm">Read</span></div>
+    <div class="step"><b>Junior</b><span class="perm">Read, Write</span></div>
+    <div class="step"><b>Senior</b><span class="perm">Read, Write, Update</span></div>
+    <div class="step"><b>Lead / Admin</b><span class="perm">Full CRUD</span></div>
+  </div>
+</section>
+
+<!-- USERS -->
+<section id="users">
+  <h2>Users &amp; groups</h2>
+  <p class="lead">Every user has exactly <b>1 primary group</b> and <b>0 or more secondary groups</b>.</p>
+
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="panel"><b>/etc/passwd</b><br><span style="color:var(--muted)">Username, UID, primary GID, home path, default shell.</span></div>
+    <div class="panel"><b>/etc/group</b><br><span style="color:var(--muted)">Group name, GID, member list.</span></div>
+  </div>
+
+  <div class="rows">
+    <div class="row"><div class="q">Create a user</div><div class="c"><code>sudo useradd ramesh</code>
+      <p class="n">Auto-creates a UID (≥ 1000), the home directory <code>/home/ramesh</code>, and a primary group named <code>ramesh</code>.</p></div></div>
+    <div class="row"><div class="q">Set or change a password</div><div class="c"><code>sudo passwd ramesh</code>
+      <p class="n">Prompts you to set the password.</p></div></div>
+    <div class="row"><div class="q">Check user details</div><div class="c"><code>id ramesh</code>
+      <p class="n">Shows UID, primary GID and secondary GIDs.</p></div></div>
+    <div class="row"><div class="q">Create a group</div><div class="c"><code>sudo groupadd devops</code>
+      <p class="n">Adds a record to <code>/etc/group</code>.</p></div></div>
+    <div class="row"><div class="q">Change the primary group</div><div class="c"><code>sudo usermod -g devops ramesh</code>
+      <p class="n"><code>-g</code> sets the single primary group.</p></div></div>
+    <div class="row"><div class="q">Add a secondary group</div><div class="c"><code>sudo usermod -aG sre ramesh</code>
+      <p class="n"><code>-G</code> names the secondary group. <code>-a</code> appends, so existing groups are not replaced.</p></div></div>
+    <div class="row"><div class="q">Remove a user from a group</div><div class="c"><code>sudo gpasswd -d ramesh devops</code>
+      <p class="n"><code>-d</code> deletes the user from the named group.</p></div></div>
+  </div>
+</section>
+
+<!-- PERMISSIONS -->
+<section id="perms">
+  <h2>Permissions &amp; ownership</h2>
+  <p class="lead">Run <code>ls -l</code> to see a 10-character string. Read it in four parts.</p>
+
+  <div class="panel">
+    <div class="permstr" aria-label="-rwxr-xr--">
+      <span class="p-type">-</span><span class="p-u">rwx</span><span class="p-g">r-x</span><span class="p-o">r--</span>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--code-bg);border:1px solid var(--line)"></i>Char 1: <code>-</code> file or <code>d</code> directory</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Chars 2–4: owner (u)</span>
+      <span><i class="dot" style="background:var(--warn)"></i>Chars 5–7: group (g)</span>
+      <span><i class="dot" style="background:var(--root)"></i>Chars 8–10: others (o)</span>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">Try the octal calculator</h3>
+  <div class="grid2">
+    <div class="panel">
+      <table class="calc">
+        <thead><tr><th></th><th>r (4)</th><th>w (2)</th><th>x (1)</th></tr></thead>
+        <tbody>
+          <tr><td>Owner (u)</td><td><input type="checkbox" data-r="0" data-b="4" aria-label="owner read"></td><td><input type="checkbox" data-r="0" data-b="2" aria-label="owner write"></td><td><input type="checkbox" data-r="0" data-b="1" aria-label="owner execute"></td></tr>
+          <tr><td>Group (g)</td><td><input type="checkbox" data-r="1" data-b="4" aria-label="group read"></td><td><input type="checkbox" data-r="1" data-b="2" aria-label="group write"></td><td><input type="checkbox" data-r="1" data-b="1" aria-label="group execute"></td></tr>
+          <tr><td>Others (o)</td><td><input type="checkbox" data-r="2" data-b="4" aria-label="others read"></td><td><input type="checkbox" data-r="2" data-b="2" aria-label="others write"></td><td><input type="checkbox" data-r="2" data-b="1" aria-label="others execute"></td></tr>
+        </tbody>
+      </table>
+      <div class="out">
+        <div class="big" id="octal">000</div>
+        <div><div class="mono" id="sym" style="font-size:1.1rem">---------</div><code id="cmd">chmod 000 file.txt</code></div>
+      </div>
+      <div class="out" style="margin-top:12px">
+        <button class="btn" data-preset="751">Example 751</button>
+        <button class="btn" data-preset="440">Example 440</button>
+        <button class="btn" data-preset="000">Clear</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Number values</h3>
+      <div class="vals"><span>7 = rwx</span><span>6 = rw-</span><span>5 = r-x</span><span>4 = r--</span><span>1 = --x</span><span>0 = ---</span></div>
+      <dl class="kv" style="margin-top:16px">
+        <dt><code>751</code></dt><dd>Owner rwx, group r-x, others --x</dd>
+        <dt><code>440</code></dt><dd>Owner r--, group r--, others ---</dd>
+      </dl>
+      <div class="note">Only the <b>file owner</b> or <b>root</b> can change permissions.</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">Commands</h3>
+  <div class="rows">
+    <div class="row"><div class="q">Add execute for the owner</div><div class="c"><code>chmod u+x file.txt</code></div></div>
+    <div class="row"><div class="q">Add write for the group</div><div class="c"><code>chmod g+w file.txt</code></div></div>
+    <div class="row"><div class="q">Remove everything from others</div><div class="c"><code>chmod o-rwx file.txt</code>
+      <p class="n">Symbolic method: <code>u</code>, <code>g</code>, <code>o</code> with <code>+</code> (add) or <code>-</code> (remove).</p></div></div>
+    <div class="row"><div class="q">Change the owner</div><div class="c"><code>sudo chown suresh file.txt</code></div></div>
+    <div class="row"><div class="q">Change owner and group</div><div class="c"><code>sudo chown ramesh:devops file.txt</code></div></div>
+    <div class="row"><div class="q">Change a whole directory</div><div class="c"><code>sudo chown -R suresh:sre /tmp/aws</code>
+      <p class="n"><code>-R</code> is recursive: it covers every file and subdirectory.</p></div></div>
+  </div>
+  <div class="note root">Only <b>root</b> can change ownership. File owners cannot hand a file to someone else.</div>
+</section>
+
+<!-- SUDO -->
+<section id="sudo">
+  <h2>Sudo (admin rights)</h2>
+  <p class="lead">Without permission, sudo fails with “ramesh is not in the sudoers file”. Two ways to fix it.</p>
+
+  <div class="grid2">
+    <div class="panel">
+      <span class="tag">Option A: simple</span>
+      <h3 style="margin-top:10px">Add to the wheel group</h3>
+      <p><code>sudo usermod -aG wheel ramesh</code></p>
+      <p style="color:var(--muted);margin:0">Wheel members can run every admin command. The user must log out and back in for it to apply.</p>
+    </div>
+    <div class="panel">
+      <span class="tag">Option B: best practice</span>
+      <h3 style="margin-top:10px">Use a file in /etc/sudoers.d/</h3>
+      <p style="color:var(--muted);margin:0">Do not edit <code>/etc/sudoers</code> directly. Create <code>/etc/sudoers.d/ramesh</code> instead.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:24px">What to write in the file</h3>
+  <div class="rows">
+    <div class="row"><div class="q">Full access, no password</div><div class="c"><code>ramesh ALL=(ALL) NOPASSWD: ALL</code></div></div>
+    <div class="row"><div class="q">Only specific commands</div><div class="c"><code>ramesh ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /usr/sbin/usermod</code>
+      <p class="n">Ramesh can run only those binaries with sudo. No root shell, no other commands.</p></div></div>
+  </div>
+
+  <ol class="flow panel" style="margin-top:16px">
+    <li><b>Lock down the file</b><span class="d"><code>sudo chmod 440 /etc/sudoers.d/ramesh</code>. If permissions are more open, Linux ignores the file and reports a bad permissions error.</span></li>
+    <li><b>Check the syntax</b><span class="d"><code>sudo visudo -c</code> checks all sudoers files for errors.</span></li>
+  </ol>
+</section>
+
+<!-- SSH -->
+<section id="ssh">
+  <h2>SSH login</h2>
+  <p class="lead">Cloud Linux (like AWS EC2) blocks passwords by default and requires keys.</p>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Turn on password login</h3>
+      <ol class="flow">
+        <li><b>Open the config</b><span class="d"><code>sudo vim /etc/ssh/sshd_config</code></span></li>
+        <li><b>Edit line 65</b><span class="d">Change <code>PasswordAuthentication no</code> to <code>PasswordAuthentication yes</code></span></li>
+        <li><b>Test the syntax</b><span class="d"><code>sudo sshd -t</code> prints nothing if all is clean.</span></li>
+        <li><b>Restart SSH</b><span class="d"><code>sudo systemctl restart sshd</code></span></li>
+        <li><b>Log in</b><span class="d"><code>ssh ramesh@&lt;IP_address&gt;</code></span></li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h3>Key-based login</h3>
+      <ol class="flow">
+        <li><b>User makes a key pair</b><span class="d">Public and private key, on their own machine.</span></li>
+        <li><b>User sends the public key</b><span class="d">The private key never leaves their machine.</span></li>
+        <li><b>Admin stores it</b><span class="d"><code>/home/ramesh/.ssh/authorized_keys</code></span></li>
+        <li><b>User connects</b><span class="d"><code>ssh -i ramesh_private_key.pem ramesh@&lt;IP_address&gt;</code></span></li>
+        <li><b>Server checks the match</b><span class="d">It finds ramesh, opens <code>authorized_keys</code>, and confirms the private key matches the stored public key. Match means access.</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- VIM -->
+<section id="vim">
+  <h2>Vim</h2>
+  <p class="lead">Run <code>vim filename</code>. It opens in Escape mode. If the file does not exist, Vim starts a new one.</p>
+
+  <div class="panel">
+    <svg class="vimsvg" viewBox="0 0 720 200" role="img" aria-label="Vim modes: Escape mode in the middle. Press i to reach Insert mode, press colon to reach Colon mode, press Escape to return. Insert and Colon cannot connect directly.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+      </defs>
+      <rect x="10" y="60" width="180" height="80" rx="12" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="100" y="97" text-anchor="middle" font-weight="700" font-size="17">Insert mode</text>
+      <text x="100" y="120" text-anchor="middle" font-size="13" style="fill:var(--muted)">type and edit text</text>
+
+      <rect x="270" y="60" width="180" height="80" rx="12" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+      <text x="360" y="97" text-anchor="middle" font-weight="700" font-size="17">Escape mode</text>
+      <text x="360" y="120" text-anchor="middle" font-size="13" style="fill:var(--muted)">default: navigate</text>
+
+      <rect x="530" y="60" width="180" height="80" rx="12" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="2"/>
+      <text x="620" y="97" text-anchor="middle" font-weight="700" font-size="17">Colon mode</text>
+      <text x="620" y="120" text-anchor="middle" font-size="13" style="fill:var(--muted)">save, search, replace</text>
+
+      <line x1="270" y1="82" x2="194" y2="82" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="232" y="74" text-anchor="middle" font-size="13" font-family="JetBrains Mono, monospace">i</text>
+      <line x1="194" y1="118" x2="266" y2="118" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="230" y="136" text-anchor="middle" font-size="13" font-family="JetBrains Mono, monospace">Esc</text>
+
+      <line x1="450" y1="82" x2="526" y2="82" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="488" y="74" text-anchor="middle" font-size="13" font-family="JetBrains Mono, monospace">:</text>
+      <line x1="526" y1="118" x2="454" y2="118" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="490" y="136" text-anchor="middle" font-size="13" font-family="JetBrains Mono, monospace">Esc</text>
+
+      <path d="M100 145 Q100 185 360 185 Q620 185 620 145" fill="none" stroke="var(--root)" stroke-width="2" stroke-dasharray="6 5"/>
+      <text x="360" y="176" text-anchor="middle" font-size="13" style="fill:var(--root)">✕ no direct path: press Esc first</text>
+    </svg>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="panel">
+      <h3>Escape mode keys</h3>
+      <dl class="keys">
+        <dt><kbd>u</kbd></dt><dd>Undo</dd>
+        <dt><kbd>Ctrl</kbd>+<kbd>r</kbd></dt><dd>Redo</dd>
+        <dt><kbd>gg</kbd></dt><dd>Jump to top of file</dd>
+        <dt><kbd>Shift</kbd>+<kbd>G</kbd></dt><dd>Jump to bottom</dd>
+        <dt><kbd>yy</kbd></dt><dd>Copy the current line</dd>
+        <dt><kbd>p</kbd></dt><dd>Paste below the cursor</dd>
+        <dt><kbd>10p</kbd></dt><dd>Paste 10 times</dd>
+        <dt><kbd>dd</kbd></dt><dd>Delete (cut) the current line</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      <h3>Save and quit</h3>
+      <dl class="keys">
+        <dt><kbd>:w</kbd></dt><dd>Save</dd>
+        <dt><kbd>:q</kbd></dt><dd>Quit (no changes made)</dd>
+        <dt><kbd>:wq</kbd></dt><dd>Save and quit</dd>
+        <dt><kbd>:q!</kbd></dt><dd>Quit without saving</dd>
+      </dl>
+      <h3 style="margin-top:20px">Line numbers and jumping</h3>
+      <dl class="keys">
+        <dt><kbd>:set nu</kbd></dt><dd>Show line numbers</dd>
+        <dt><kbd>:set nonu</kbd></dt><dd>Hide them (also <code>:set nonumber</code>)</dd>
+        <dt><kbd>:10</kbd></dt><dd>Jump to line 10 (<code>:720</code> goes to line 720)</dd>
+      </dl>
+      <p style="color:var(--muted);font-size:.9rem;margin:12px 0 0">Bottom-right corner shows line number and character position.</p>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="panel">
+      <h3>Search</h3>
+      <dl class="keys">
+        <dt><kbd>/word</kbd></dt><dd>Search forward. <kbd>n</kbd> jumps to the next match and wraps from bottom to top.</dd>
+        <dt><kbd>?word</kbd></dt><dd>Search backward from the cursor</dd>
+        <dt><kbd>:noh</kbd></dt><dd>Clear highlighting</dd>
+      </dl>
+      <h3 style="margin-top:20px">Delete lines</h3>
+      <dl class="keys">
+        <dt><kbd>:2d</kbd></dt><dd>Delete line 2</dd>
+        <dt><kbd>:5,10d</kbd></dt><dd>Delete lines 5 to 10</dd>
+        <dt><kbd>:%d</kbd></dt><dd>Delete everything (<code>%</code> means all lines)</dd>
+      </dl>
+    </div>
+    <div class="panel">
+      <h3>Find and replace</h3>
+      <div class="matrix">
+        <div></div><div class="h">First match per line</div><div class="h">Every match (<code>g</code>)</div>
+        <div class="h">Line 3 only</div><div class="cell"><code>:3s/old/new</code></div><div class="cell"><code>:3s/old/new/g</code></div>
+        <div class="h">All lines (<code>%</code>)</div><div class="cell"><code>:%s/old/new</code></div><div class="cell"><code>:%s/old/new/g</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEVOPS -->
+<section id="devops">
+  <h2>DevOps context</h2>
+  <div class="grid3">
+    <div class="panel">
+      <h3>Why learn CLI user management?</h3>
+      <p style="margin:0;color:var(--muted)">Even with SSO, you use it when writing Dockerfiles, running apps as non-root, securing containers, and setting cloud IAM rules.</p>
+    </div>
+    <div class="panel">
+      <h3>Never edit production by hand</h3>
+      <p style="margin:0;color:var(--muted)">Keep config files in Git. Review them with pull requests. Deploy through CI/CD.</p>
+    </div>
+    <div class="panel">
+      <h3>Moving into DevOps</h3>
+      <p style="margin:0;color:var(--muted)">From Java development or manual testing, treat your background as an asset. Build your resume around hands-on projects, not generic templates.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="wrap foot">Tip: each command runs with <code>sudo</code> unless you are already root.</div>
+
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('.calc input'));
+  function render(){
+    var v=[0,0,0],s=['','',''];
+    boxes.forEach(function(b){
+      var r=+b.dataset.r,bit=+b.dataset.b;
+      if(b.checked){v[r]+=bit}
+    });
+    for(var i=0;i<3;i++){
+      s[i]=((v[i]&4)?'r':'-')+((v[i]&2)?'w':'-')+((v[i]&1)?'x':'-');
+    }
+    var o=v.join('');
+    document.getElementById('octal').textContent=o;
+    document.getElementById('sym').textContent=s.join('');
+    document.getElementById('cmd').textContent='chmod '+o+' file.txt';
+  }
+  function setOctal(str){
+    boxes.forEach(function(b){
+      var d=+str.charAt(+b.dataset.r);
+      b.checked=(d&(+b.dataset.b))>0;
+    });
+    render();
+  }
+  boxes.forEach(function(b){b.addEventListener('change',render)});
+  [].slice.call(document.querySelectorAll('[data-preset]')).forEach(function(btn){
+    btn.addEventListener('click',function(){setOctal(btn.dataset.preset)});
+  });
+  setOctal('751');
+})();
+</script>
+</body>
+</html>
