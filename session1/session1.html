@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DevSecOps Explained Simply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f4f7f9; --surface:#ffffff; --ink:#132430; --muted:#526672; --line:#d5dee4;
+  --accent:#0d6e73; --accent-soft:#dcefef; --warn:#c2410c; --warn-soft:#fdeadf; --ok:#2f7d32; --ok-soft:#e2f2e3;
+  --head:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e171d; --surface:#15222a; --ink:#e7eef2; --muted:#9db0ba; --line:#28394330;
+    --line:#2a3b46; --accent:#4fc3c8; --accent-soft:#12373a; --warn:#ff9a62; --warn-soft:#3b2416; --ok:#7fd183; --ok-soft:#1b3a1e;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e171d; --surface:#15222a; --ink:#e7eef2; --muted:#9db0ba;
+  --line:#2a3b46; --accent:#4fc3c8; --accent-soft:#12373a; --warn:#ff9a62; --warn-soft:#3b2416; --ok:#7fd183; --ok-soft:#1b3a1e;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;font-size:17px}
+main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
+h1,h2,h3{font-family:var(--head);line-height:1.15;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.5vw,2rem);font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0 0 12px}
+section{margin-top:64px}
+.lead{font-size:1.2rem;color:var(--muted);max-width:60ch;margin-top:16px}
+.sub{color:var(--muted);max-width:62ch;margin-bottom:24px}
+.callout{background:var(--accent-soft);border-left:4px solid var(--accent);padding:14px 18px;border-radius:0 8px 8px 0;margin-top:24px}
+.callout p{margin:0}
+
+/* SDLC phases */
+.phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:0;margin:0;list-style:none;counter-reset:p}
+.phases li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;counter-increment:p;position:relative}
+.phases li::before{content:counter(p);font-family:var(--head);font-weight:800;color:var(--accent);font-size:1.3rem;display:block}
+.phases b{display:block;font-family:var(--head)}
+.phases span{font-size:.92rem;color:var(--muted)}
+
+/* Model explorer */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{font:600 1rem var(--body);padding:10px 18px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tab[aria-selected="true"]{color:#06181a}}
+:root[data-theme="dark"] .tab[aria-selected="true"]{color:#06181a}
+.tab:focus-visible,.env:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+.analogy{font-family:var(--head);font-size:1.25rem;font-weight:700;margin-bottom:4px}
+.track-label{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin:18px 0 6px}
+.track{position:relative;height:56px;border-radius:8px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:stretch;justify-content:space-between;padding:0 6px;overflow:hidden}
+.tick{width:4px;margin:8px 0;border-radius:2px;background:var(--accent);flex:none;transition:height .3s}
+.tick.big{width:8px;background:var(--warn)}
+.tick.gap{background:transparent}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+@media(max-width:620px){.cols{grid-template-columns:1fr}}
+.col h4{margin:0 0 6px;font-family:var(--head);font-size:1rem}
+.col ul{margin:0;padding-left:1.1rem}
+.col li{margin-bottom:4px}
+.good h4{color:var(--ok)} .bad h4{color:var(--warn)}
+.stat{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:.9rem;margin:0 6px 6px 0}
+
+/* Environments */
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.env{font:500 .95rem var(--body);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 14px;border-radius:8px;cursor:pointer;text-align:left}
+.env[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.env.prod{border-style:dashed}
+.arrow{align-self:center;color:var(--muted)}
+.envinfo{margin-top:14px;min-height:3.2em;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+
+/* Goals */
+.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.goal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.goal h3{margin-bottom:4px}
+.goal p{margin:0;color:var(--muted);font-size:.95rem}
+
+/* Tools table */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--head);font-size:.95rem;background:var(--accent-soft)}
+td:first-child{font-weight:600;white-space:nowrap}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:620px){.two{grid-template-columns:1fr}}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.box ul{margin:8px 0 0;padding-left:1.1rem}
+.box li{margin-bottom:6px}
+footer{margin-top:64px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);padding-top:16px}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>DevSecOps, explained simply</h1>
+  <p class="lead">DevSecOps is a way of building, shipping and protecting software in small, fast, automated steps, with everyone involved working from one clear process.</p>
+  <div class="callout"><p><b>The core idea:</b> a big team with big salaries still fails without a clear process. Clear roles, clear steps and quick feedback are what make software succeed.</p></div>
+</header>
+
+<section>
+  <h2>Why process matters</h2>
+  <p class="sub">A system is any group of connected people who depend on each other: a family, a school, a bank, a software team. Each has many stakeholders, and things break when their roles clash.</p>
+  <div class="two">
+    <div class="box">
+      <h3>Software team stakeholders</h3>
+      <ul>
+        <li>DevOps engineers, developers, testers, admins</li>
+        <li>Leadership and the client</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>The lesson</h3>
+      <ul>
+        <li>Hiring 100 engineers at ₹1 Cr each fails if nobody knows who does what.</li>
+        <li>Technology exists to serve the business and its revenue.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The 7 steps of building software (SDLC)</h2>
+  <p class="sub">SDLC means Software Development Life Cycle. Every project goes through these steps, whatever method the team uses. The client cares about business value. The end user cares about the app experience, because the customer is king.</p>
+  <ol class="phases">
+    <li><b>Requirements</b><span>Collect what the client needs</span></li>
+    <li><b>Planning</b><span>Check feasibility, estimate time</span></li>
+    <li><b>Design</b><span>Draw the architecture blueprint</span></li>
+    <li><b>Development</b><span>Write the code</span></li>
+    <li><b>Testing</b><span>Check it matches the requirements</span></li>
+    <li><b>Deployment</b><span>Release it to users</span></li>
+    <li><b>Maintenance</b><span>Keep updating: daily, monthly, yearly</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2>Three ways to run it</h2>
+  <p class="sub">The big difference is how often the work gets tested and checked. Pick a model to see the checkpoints across one year of a project.</p>
+
+  <div class="tabs" role="tablist" aria-label="Development models">
+    <button class="tab" role="tab" aria-selected="true" data-m="waterfall">Waterfall</button>
+    <button class="tab" role="tab" aria-selected="false" data-m="agile">Agile</button>
+    <button class="tab" role="tab" aria-selected="false" data-m="devops">DevOps</button>
+  </div>
+
+  <div class="panel" id="modelPanel" role="tabpanel" aria-live="polite">
+    <div class="analogy" id="mAnalogy"></div>
+    <p id="mSummary" class="sub" style="margin-bottom:0"></p>
+    <div class="track-label"><span>Start of project</span><span>One year later</span></div>
+    <div class="track" id="track" aria-hidden="true"></div>
+    <p id="mTrackNote" style="font-size:.9rem;color:var(--muted);margin:8px 0 0"></p>
+    <div class="cols">
+      <div class="col bad"><h4>Trouble spots</h4><ul id="mBad"></ul></div>
+      <div class="col good"><h4>What works</h4><ul id="mGood"></ul></div>
+    </div>
+    <div id="mStats" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<section>
+  <h2>Testing in stages before real users see it</h2>
+  <p class="sub">Think of a new drink: taste it yourself, then family, then friends, then a small crowd, then the market. Software follows the same path, one environment at a time. This is how teams avoid a "New Coke" moment, when a company changed its recipe without proper checks and customers pushed back hard. Tap a stage.</p>
+  <div class="chain" id="chain"></div>
+  <div class="envinfo" id="envInfo" aria-live="polite">Tap a stage to see what happens there.</div>
+  <p style="margin-top:14px;color:var(--muted);font-size:.95rem">Startups may use only a few stages. Financial and stock-trading apps can use 10 to 11.</p>
+</section>
+
+<section>
+  <h2>What DevOps delivers to the business</h2>
+  <div class="goals">
+    <div class="goal"><h3>Speed</h3><p>Faster releases of new features.</p></div>
+    <div class="goal"><h3>Quality</h3><p>Fewer defects reaching users.</p></div>
+    <div class="goal"><h3>Availability</h3><p>Zero downtime, even when tens of millions stream a match at once.</p></div>
+    <div class="goal"><h3>Elasticity</h3><p>Auto-scaling adds capacity during traffic spikes, like exam result day.</p></div>
+    <div class="goal"><h3>Cost control</h3><p>The cloud bill stays in proportion to revenue.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Where the "Sec" comes in</h2>
+  <p class="sub">DevSecOps moves security checks to the left, meaning early in the pipeline, so problems are found while they are cheap to fix.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Check</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>SAST</td><td>Scans your source code without running it</td></tr>
+        <tr><td>DAST</td><td>Attacks the running app to find weak spots</td></tr>
+        <tr><td>SCA</td><td>Checks open-source libraries you use for known vulnerabilities</td></tr>
+        <tr><td>Image scanning</td><td>Inspects container images for vulnerabilities (for example with Trivy)</td></tr>
+        <tr><td>Network security</td><td>Controls traffic with NACLs, security groups, route tables and NAT gateways</td></tr>
+        <tr><td>Code quality gates</td><td>SonarQube flags unused functions, bad calls and memory leaks</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:28px">Watching the app after release (observability)</h3>
+  <div class="two" style="margin-top:12px">
+    <div class="box">
+      <b>Tools</b>
+      <ul>
+        <li>Prometheus for metrics</li>
+        <li>Grafana for dashboards</li>
+        <li>Loki for logs, a modern option in place of ELK</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>What you track</b>
+      <ul>
+        <li>CPU spikes and memory leaks</li>
+        <li>GET and POST request behaviour</li>
+        <li>Tracing with latency percentiles (P50, P90, P99): P99 is the slow experience the unluckiest 1% of users get</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Automation and AI: what changes, what stays</h2>
+  <p class="sub">Work keeps moving from manual to automated: manual testing to Selenium, manual releases to CI/CD, manual coding to AI assistants like ChatGPT, Cursor and Claude.</p>
+  <div class="two">
+    <div class="box">
+      <b>Where AI still struggles in DevOps</b>
+      <ul>
+        <li>Promoting releases safely through every environment</li>
+        <li>Setting up infrastructure across clouds (IaC)</li>
+        <li>Runtime upgrades, such as Java 17 to 21</li>
+        <li>Live production: banks will not trust unsupervised AI there</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>Good to know</b>
+      <ul>
+        <li>60 to 80% of enterprise code is legacy, and 40 to 50% of budgets go to old architecture, so migration skills are in demand.</li>
+        <li>With AI, break big tasks into small, single-purpose steps.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Getting ready to practise</h2>
+  <div class="two">
+    <div class="box">
+      <b>Your own laptop</b>
+      <ul>
+        <li>Company laptops are restricted and monitored, so use a personal one.</li>
+        <li>Minimum: 8 GB RAM, i5 processor</li>
+        <li>Recommended: 16 GB RAM, i7 processor</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>Cloud account</b>
+      <ul>
+        <li>Create an AWS Free Tier account for hands-on practice.</li>
+        <li>You need a valid debit or credit card, plus a PAN card for tax details.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:24px"><p><b>Study tips from the course:</b> think from fundamentals, take notes by hand to slow down and focus, and remember that technical skill is what keeps a career moving. Toolset to learn: AWS/GCP/Azure, Linux, shell, Git, Docker, Kubernetes, Terraform, Jenkins, ArgoCD.</p></div>
+</section>
+
+<footer>Summary of the DevSecOps Fundamentals &amp; SDLC concept map.</footer>
+</main>
+
+<script>
+(function(){
+  var models = {
+    waterfall:{
+      analogy:"Like one big exam at the end of the year",
+      summary:"Work flows one way, top to bottom. You cannot change the plan halfway, just like you cannot move walls once a house is being built.",
+      ticks:{count:1, big:true},
+      note:"One real test, at the very end.",
+      bad:["Old-style projects took 1 to 2 years; 3 to 4 months went to talking alone","Testers get code late and find around 100 defects at once","About 20 to 30 of those are invalid because developers forgot their own code","Developers and testers blame each other","Production can crash with 500 server errors"],
+      good:["Simple, clear order of steps","Fits projects where requirements never change"],
+      stats:["Feedback: once","Cycle: 1 to 2 years"]
+    },
+    agile:{
+      analogy:"Like unit tests through the year",
+      summary:"Work is split into short sprints, for example one month each. Features arrive in slices: sign-up, catalogue, cart, order, payment.",
+      ticks:{count:12, big:false},
+      note:"A checkpoint every sprint (monthly).",
+      bad:["Daily stand-up pressure: what I did, what I will do, what blocks me","Unfixed defects pile up into the next sprint","Missed sprints can cost penalties or even the client contract"],
+      good:["Smaller scope means fewer invalid defects (about 15)","Developers still remember fresh code","The client gives feedback early, so you can course-correct"],
+      stats:["Feedback: monthly","Cycle: 1 sprint"]
+    },
+    devops:{
+      analogy:"Like a quick quiz every day",
+      summary:"Developers commit tiny changes daily, such as a first-name field, and a pipeline builds, tests and deploys them automatically.",
+      ticks:{count:60, big:false},
+      note:"A checkpoint every day (thinned out here so it fits).",
+      bad:["Needs a well-built automated pipeline first","Needs strong daily coordination between teams"],
+      good:["Bug feedback comes back in about 5 to 15 minutes","Small changes are easy to fix and roll back","Daily teamwork builds trust between stakeholders"],
+      stats:["Feedback: minutes","Cycle: daily"]
+    }
+  };
+  var tabs=document.querySelectorAll('.tab');
+  function li(arr){return arr.map(function(t){return '<li>'+t+'</li>'}).join('')}
+  function show(key){
+    var m=models[key];
+    document.getElementById('mAnalogy').textContent=m.analogy;
+    document.getElementById('mSummary').textContent=m.summary;
+    document.getElementById('mTrackNote').textContent=m.note;
+    document.getElementById('mBad').innerHTML=li(m.bad);
+    document.getElementById('mGood').innerHTML=li(m.good);
+    document.getElementById('mStats').innerHTML=m.stats.map(function(s){return '<span class="stat">'+s+'</span>'}).join('');
+    var track=document.getElementById('track'); track.innerHTML='';
+    var n=m.ticks.count;
+    if(n===1){
+      track.style.justifyContent='flex-end';
+      var t=document.createElement('div'); t.className='tick big'; track.appendChild(t);
+    } else {
+      track.style.justifyContent='space-between';
+      for(var i=0;i<n;i++){var d=document.createElement('div'); d.className='tick'; track.appendChild(d);}
+    }
+    tabs.forEach(function(b){b.setAttribute('aria-selected', b.dataset.m===key?'true':'false')});
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.m)})});
+  show('waterfall');
+
+  var envs=[
+    ["Dev","Developers run their own unit tests."],
+    ["SIT","QA runs system integration testing to check the parts work together."],
+    ["UAT","The client tests it against what they asked for (user acceptance testing)."],
+    ["Pre-Prod","A staging copy of production, tried by a small group of real users."],
+    ["Performance","Load testing, for example simulating 100,000 users."],
+    ["Security","Simulated attacks to find weak spots before real ones come."],
+    ["Prod","The live system that real business users depend on."]
+  ];
+  var chain=document.getElementById('chain'), info=document.getElementById('envInfo');
+  envs.forEach(function(e,i){
+    var b=document.createElement('button'); b.className='env'+(i===envs.length-1?' prod':''); b.type='button';
+    b.setAttribute('aria-pressed','false'); b.textContent=e[0];
+    b.addEventListener('click',function(){
+      chain.querySelectorAll('.env').forEach(function(x){x.setAttribute('aria-pressed','false')});
+      b.setAttribute('aria-pressed','true'); info.textContent=e[0]+": "+e[1];
+    });
+    chain.appendChild(b);
+    if(i<envs.length-1){var a=document.createElement('span'); a.className='arrow'; a.setAttribute('aria-hidden','true'); a.textContent='›'; chain.appendChild(a);}
+  });
+})();
+</script>
+</body>
+</html>
