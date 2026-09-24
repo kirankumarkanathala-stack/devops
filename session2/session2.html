@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AWS & Linux Basics for DevSecOps, in Plain English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #EDF1F5;
+    --surface: #FFFFFF;
+    --ink: #0F1B2D;
+    --muted: #4F6077;
+    --line: #D0D9E3;
+    --accent: #0B6E99;
+    --accent-soft: #DCEEF6;
+    --good: #16783C;
+    --good-soft: #DCF2E3;
+    --bad: #B42318;
+    --bad-soft: #FBE3E0;
+    --code-bg: #0F1B2D;
+    --code-ink: #E4ECF5;
+    --code-dim: #8FA2B9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0C131B;
+      --surface: #141E29;
+      --ink: #E5ECF4;
+      --muted: #9BADC2;
+      --line: #263444;
+      --accent: #52C3F0;
+      --accent-soft: #14303F;
+      --good: #57D08A;
+      --good-soft: #12301F;
+      --bad: #FF8E82;
+      --bad-soft: #3A1815;
+      --code-bg: #070C12;
+      --code-ink: #E4ECF5;
+      --code-dim: #7F93AA;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0C131B;
+    --surface: #141E29;
+    --ink: #E5ECF4;
+    --muted: #9BADC2;
+    --line: #263444;
+    --accent: #52C3F0;
+    --accent-soft: #14303F;
+    --good: #57D08A;
+    --good-soft: #12301F;
+    --bad: #FF8E82;
+    --bad-soft: #3A1815;
+    --code-bg: #070C12;
+    --code-ink: #E4ECF5;
+    --code-dim: #7F93AA;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif; line-height: 1.1; margin: 0; }
+  h1 { font-size: clamp(2.3rem, 7vw, 3.6rem); font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: clamp(1.6rem, 4.5vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
+  h3 { font-size: 1.1rem; font-weight: 600; }
+  p { margin: 0 0 1em; max-width: 68ch; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  header p.sub { font-size: 1.15rem; color: var(--muted); margin-top: 16px; }
+  nav.toc { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 8px; }
+  nav.toc a {
+    text-decoration: none; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: 0.92rem;
+  }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  section { margin-top: 64px; padding-top: 32px; border-top: 2px solid var(--line); }
+  .lead { font-size: 1.2rem; font-weight: 500; margin: 12px 0 20px; color: var(--ink); }
+
+  /* comparison table */
+  .scroll { overflow-x: auto; max-width: 100%; }
+  table.compare { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: 0.97rem; }
+  table.compare th, table.compare td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  table.compare thead th { background: var(--accent-soft); font-weight: 600; }
+  table.compare tbody th { font-weight: 500; color: var(--muted); width: 26%; }
+  table.compare tr:last-child > * { border-bottom: 0; }
+
+  /* regions diagram */
+  .region { border: 2px solid var(--accent); border-radius: 14px; padding: 14px; background: var(--surface); }
+  .region-name { font-weight: 600; margin-bottom: 12px; }
+  .region-name small { color: var(--muted); font-weight: 400; }
+  .azs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; }
+  .az { background: var(--accent-soft); border-radius: 10px; padding: 12px; font-size: 0.93rem; }
+  .az b { display: block; margin-bottom: 4px; }
+  .az span { color: var(--muted); }
+  .az-link { align-self: center; color: var(--accent); font-weight: 600; font-size: 0.8rem; text-align: center; line-height: 1.2; }
+  @media (max-width: 520px) {
+    .azs { grid-template-columns: 1fr; }
+    .az-link::before { content: "↕ "; }
+    .az-link { padding: 2px 0; }
+  }
+  dl.defs { margin: 24px 0 0; display: grid; gap: 14px; }
+  dl.defs div { border-left: 4px solid var(--accent); padding-left: 14px; }
+  dl.defs dt { font-weight: 600; }
+  dl.defs dd { margin: 2px 0 0; color: var(--muted); }
+
+  .note { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 20px 0; }
+  .note.warn { border-color: var(--bad); background: var(--bad-soft); }
+  .note.good { border-color: var(--good); background: var(--good-soft); }
+  .note p:last-child { margin-bottom: 0; }
+  .note strong { font-weight: 600; }
+
+  /* parts of a computer */
+  .parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+  .parts li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .parts b { display: block; font-family: "Bricolage Grotesque", system-ui, sans-serif; font-size: 1.15rem; }
+  .parts span { color: var(--muted); font-size: 0.92rem; }
+
+  /* linux layers */
+  .layers { display: grid; gap: 0; margin: 20px 0; max-width: 460px; }
+  .layers div { padding: 12px 16px; border: 1px solid var(--line); background: var(--surface); margin-top: -1px; }
+  .layers div:first-child { border-radius: 10px 10px 0 0; }
+  .layers div:last-child { border-radius: 0 0 10px 10px; }
+  .layers .k { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  :root[data-theme="dark"] .layers .k { color: #04202D; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .layers .k { color: #04202D; } }
+  .layers small { display: block; opacity: 0.85; font-weight: 400; }
+
+  .families { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 20px 0; }
+  .fam { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .fam h3 { margin-bottom: 6px; }
+  .fam p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+
+  ul.plain { padding-left: 1.2em; margin: 0 0 1em; max-width: 68ch; }
+  ul.plain li { margin-bottom: 6px; }
+
+  /* security group demo */
+  .demo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 20px 0; }
+  .demo-title { font-weight: 600; margin-bottom: 10px; }
+  .choice { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .choice button {
+    font: inherit; font-size: 0.95rem; padding: 9px 14px; border-radius: 8px; cursor: pointer;
+    border: 2px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  .choice button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .rule {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 0.85rem;
+    background: var(--code-bg); color: var(--code-ink); padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; overflow-x: auto; white-space: nowrap;
+  }
+  .stage { display: grid; grid-template-columns: 1fr 1.3fr 0.9fr; gap: 8px 10px; align-items: center; }
+  .actor { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 0.93rem; background: var(--bg); }
+  .actor b { display: block; }
+  .actor span { color: var(--muted); font-size: 0.85rem; }
+  .server { grid-column: 3; grid-row: 1 / span 2; align-self: stretch; display: flex; flex-direction: column; justify-content: center; text-align: center; border: 2px solid var(--accent); border-radius: 12px; padding: 10px; background: var(--accent-soft); font-size: 0.93rem; }
+  .server b { display: block; }
+  .server span { color: var(--muted); font-size: 0.82rem; }
+  .link { font-size: 0.85rem; padding: 8px 10px; border-radius: 8px; text-align: center; line-height: 1.3; font-weight: 500; }
+  .link.ok { background: var(--good-soft); color: var(--good); }
+  .link.no { background: var(--bad-soft); color: var(--bad); }
+  .verdict { margin: 16px 0 0; font-size: 0.97rem; }
+  @media (max-width: 560px) {
+    .stage { grid-template-columns: 1fr; }
+    .server { grid-column: 1; grid-row: auto; order: 5; }
+  }
+
+  table.ports { border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; width: 100%; max-width: 520px; font-size: 0.97rem; margin: 16px 0; }
+  table.ports th, table.ports td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  table.ports thead th { background: var(--accent-soft); }
+  table.ports tr:last-child > * { border-bottom: 0; }
+
+  /* auth ladder */
+  .ladder { display: grid; gap: 8px; margin: 16px 0 24px; padding: 0; list-style: none; }
+  .ladder li { padding: 10px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .ladder li:last-child { border-color: var(--good); background: var(--good-soft); }
+  .ladder li span { color: var(--muted); font-size: 0.92rem; }
+
+  .lockkey { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .lockkey > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .lockkey h3 { margin-bottom: 4px; }
+  .lockkey p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+  .lockkey code { font-size: 0.85em; }
+  @media (max-width: 520px) { .lockkey { grid-template-columns: 1fr; } }
+
+  /* steps + code */
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 20px 0; display: grid; gap: 14px; }
+  ol.steps > li { counter-increment: s; position: relative; padding-left: 46px; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 600; display: grid; place-items: center; font-size: 0.95rem;
+  }
+  :root[data-theme="dark"] ol.steps > li::before { color: #04202D; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ol.steps > li::before { color: #04202D; } }
+  ol.steps p { margin: 0 0 6px; }
+  pre, code { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; }
+  pre { background: var(--code-bg); color: var(--code-ink); border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 8px 0; font-size: 0.88rem; line-height: 1.55; }
+  pre .c { color: var(--code-dim); }
+  p code, li code, td code { background: var(--accent-soft); padding: 1px 6px; border-radius: 5px; font-size: 0.88em; }
+
+  /* quiz */
+  .quiz { display: grid; gap: 10px; margin-top: 16px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  details summary { cursor: pointer; font-weight: 500; }
+  details[open] summary { margin-bottom: 8px; }
+  details p { margin: 0; color: var(--muted); }
+
+  footer { margin-top: 64px; color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>AWS &amp; Linux basics for DevSecOps</h1>
+  <p class="sub">Session 02 in plain English: what the cloud is, how AWS is laid out, what Linux really is, and how to log in to a server safely.</p>
+  <nav class="toc" aria-label="Contents">
+    <a href="#cloud">Why cloud</a>
+    <a href="#regions">Regions &amp; zones</a>
+    <a href="#computer">Computers</a>
+    <a href="#linux">Linux</a>
+    <a href="#firewall">Security groups</a>
+    <a href="#network">Client &amp; server</a>
+    <a href="#ssh">SSH keys</a>
+    <a href="#hands-on">Try it</a>
+    <a href="#check">Quiz</a>
+  </nav>
+</header>
+
+<section id="cloud">
+  <h2>Why cloud?</h2>
+  <p class="lead">Cloud means renting computers by the minute instead of buying and running your own.</p>
+  <p>Take Swiggy. Their job is delivering food, not managing servers, air conditioning, generators and guards. So they rent capacity from AWS and pay only for what they use. Even banks are now moving to the cloud.</p>
+  <div class="scroll">
+    <table class="compare">
+      <thead><tr><th></th><th>Own servers (on-premise)</th><th>AWS cloud</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Cost</th><td>Big upfront purchase (CAPEX)</td><td>Pay per minute of use</td></tr>
+        <tr><th scope="row">Space &amp; power</th><td>You need a room, cooling, generators, security</td><td>AWS handles all of it</td></tr>
+        <tr><th scope="row">Setup time</th><td>Weeks to months</td><td>A new server in about 2 minutes</td></tr>
+        <tr><th scope="row">Staying online</th><td>You must build the backup yourself</td><td>Easy to spread across several locations</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="regions">
+  <h2>How AWS is laid out</h2>
+  <p class="lead">AWS is split into regions, and each region is split into availability zones.</p>
+
+  <div class="region" role="img" aria-label="Diagram: a region such as Hyderabad contains two availability zones connected by fast fiber">
+    <div class="region-name">Region: Hyderabad <small>(ap-south-2)</small></div>
+    <div class="azs">
+      <div class="az"><b>Availability Zone A</b><span>Its own data center, power and cooling</span></div>
+      <div class="az-link">fast fiber link</div>
+      <div class="az"><b>Availability Zone B</b><span>Its own data center, power and cooling</span></div>
+    </div>
+  </div>
+
+  <dl class="defs">
+    <div><dt>Data center</dt><dd>A building full of servers, power, cooling and network cables.</dd></div>
+    <div><dt>Availability Zone (AZ)</dt><dd>One or more data centers with their own power, cooling and network, so one AZ failing doesn't take down another.</dd></div>
+    <div><dt>Region</dt><dd>A place on the map (N. Virginia, Mumbai, Hyderabad) with at least two AZs, usually three or more.</dd></div>
+  </dl>
+
+  <h3 style="margin-top:28px">Why zones matter</h3>
+  <p>A flood or power failure can knock out one data center. If your app runs in two AZs, traffic shifts to the healthy one and users notice nothing. This is <strong>high availability</strong>.</p>
+
+  <h3 style="margin-top:28px">Which region for learning?</h3>
+  <p>The instructor suggests <code>us-east-1</code> (N. Virginia): it's the cheapest, and new AWS services launch there first. It's a little farther from India, but a few extra milliseconds don't matter when you're just learning.</p>
+
+  <div class="note">
+    <p><strong>Before you sign up:</strong> use a credit or debit card with international payments switched on (local-only cards get rejected), and make sure your billing name and address match your bank records.</p>
+  </div>
+</section>
+
+<section id="computer">
+  <h2>What is a computer?</h2>
+  <p class="lead">A server is just a computer with a different job.</p>
+  <ul class="parts">
+    <li><b>CPU</b><span>The brain. Does the work.</span></li>
+    <li><b>RAM</b><span>Short-term memory for whatever is running now.</span></li>
+    <li><b>Storage</b><span>Long-term memory. Files stay here.</span></li>
+    <li><b>OS</b><span>The manager that runs programs on the hardware.</span></li>
+    <li><b>IP address</b><span>Its address on the network.</span></li>
+  </ul>
+  <p>Your laptop and a server have all of these. The only difference is purpose: a laptop is for you, while a server sits in a data center and serves other people's requests 24/7. Phones, smart TVs, voting machines and the Raspberry Pi are computers too.</p>
+  <p>Storage has shrunk dramatically: about 60 years ago a room-sized drum held 1&nbsp;KB. Today a fingernail-sized microSD card holds 1&nbsp;TB.</p>
+</section>
+
+<section id="linux">
+  <h2>What Linux really is</h2>
+  <p class="lead">Linux is a kernel, not a full operating system.</p>
+  <div class="layers" role="img" aria-label="Layers from top to bottom: you and your apps, shell, kernel, hardware">
+    <div>You and your apps</div>
+    <div>Shell <small>takes your typed commands and passes them on</small></div>
+    <div class="k">Kernel (this is Linux) <small>controls the CPU, RAM and disk</small></div>
+    <div>Hardware</div>
+  </div>
+  <p>Linus Torvalds started it in 1991 as a free, open-source alternative to expensive Unix systems that were locked to specific hardware. He also created Git.</p>
+
+  <h3>Distros: Linux packaged into a full OS</h3>
+  <div class="families">
+    <div class="fam"><h3>Debian family</h3><p>Debian, Ubuntu. Popular on desktops and with startups.</p></div>
+    <div class="fam"><h3>Red Hat family</h3><p>RHEL, CentOS, AlmaLinux, Fedora, Amazon Linux.</p></div>
+  </div>
+  <p><strong>Free vs enterprise:</strong> with a free distro, when something breaks you search forums and wait. With RHEL, companies and banks pay Red Hat for 24/7 support, and engineers join a call right away when production goes down.</p>
+</section>
+
+<section id="firewall">
+  <h2>Security groups</h2>
+  <p class="lead">A security group is a firewall around your EC2 server. It decides who can connect in.</p>
+  <ul class="plain">
+    <li><strong>Ingress</strong> (traffic coming in) is checked. Nothing gets in unless you allow it.</li>
+    <li><strong>Egress</strong> (traffic going out) is allowed by default.</li>
+  </ul>
+  <p>To log in over SSH you allow port 22. The important choice is <em>who</em> is allowed. Try both options:</p>
+
+  <div class="demo" id="sg">
+    <div class="demo-title">Allow SSH (port 22) from…</div>
+    <div class="choice" role="group" aria-label="Choose the allowed source">
+      <button type="button" data-mode="anywhere" aria-pressed="true">Anywhere (0.0.0.0/0)</button>
+      <button type="button" data-mode="myip" aria-pressed="false">My IP only (/32)</button>
+    </div>
+    <div class="rule" id="sg-rule">Type: SSH   Port: 22   Source: 0.0.0.0/0</div>
+    <div class="stage">
+      <div class="actor"><b>You</b><span>your own IP</span></div>
+      <div class="link ok" id="sg-you">Allowed in</div>
+      <div class="server"><b>Your server</b><span>EC2 instance</span></div>
+      <div class="actor"><b>Stranger</b><span>any other IP, maybe via VPN</span></div>
+      <div class="link no" id="sg-them">Allowed in too</div>
+    </div>
+    <p class="verdict" id="sg-verdict" aria-live="polite"></p>
+  </div>
+
+  <p><code>0.0.0.0/0</code> means every IP address on the internet. <code>/32</code> means exactly one IP address, yours.</p>
+  <div class="note warn">
+    <p><strong>It really happens.</strong> In an earlier batch, SSH was left open to everyone. A stranger connected through a VPN, logged in to the instructor's live server and deleted work in the middle of class. Rule: for port 22, always choose <strong>My IP</strong>.</p>
+  </div>
+</section>
+
+<section id="network">
+  <h2>Client and server</h2>
+  <p class="lead">The client asks. The server answers.</p>
+  <ul class="plain">
+    <li>Browsing Facebook: your laptop is the client, Facebook's data center is the server.</li>
+    <li>Copying photos from your phone: the laptop is the client, the phone is the server.</li>
+    <li>Same idea in real life: a patient asks, the doctor answers.</li>
+  </ul>
+  <p>The internet between them is mostly not wireless or satellite. Countries are joined by huge fiber cables on the sea floor that come ashore at places like Chennai and Kolkata.</p>
+  <p>A <strong>protocol</strong> is an agreed set of rules two computers follow to talk. Each one uses a numbered <strong>port</strong>:</p>
+  <table class="ports">
+    <thead><tr><th>Protocol</th><th>Port</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td>HTTP</td><td>80</td><td>Websites (plain)</td></tr>
+      <tr><td>HTTPS</td><td>443</td><td>Websites (encrypted)</td></tr>
+      <tr><td>SSH</td><td>22</td><td>Typing commands on a remote server, securely</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="ssh">
+  <h2>SSH keys</h2>
+  <p class="lead">A lock you can show to anyone, and a key you never show to anyone.</p>
+  <p>Ways to prove who you are, from weakest to strongest:</p>
+  <ol class="ladder">
+    <li>Username + password <span>easy to guess or copy</span></li>
+    <li>Password + one-time code <span>better, needs a second device</span></li>
+    <li>SSH key pair <span>most secure</span></li>
+  </ol>
+  <div class="lockkey">
+    <div>
+      <h3>Public key = the lock</h3>
+      <p>File ends in <code>.pub</code>. It goes on the server. Anyone may see it.</p>
+    </div>
+    <div>
+      <h3>Private key = the key</h3>
+      <p>Stays on your laptop only. It's the only thing that opens the lock.</p>
+    </div>
+  </div>
+  <div class="note warn">
+    <p><strong>Golden rule:</strong> never share your private key with anyone. Not a friend, not your manager, not the company owner.</p>
+  </div>
+</section>
+
+<section id="hands-on">
+  <h2>Try it: make and import a key</h2>
+  <p class="lead">You'll do this once, and then reuse the key when you launch servers.</p>
+  <ol class="steps">
+    <li>
+      <p><strong>Open a terminal.</strong> On Windows install and open Git Bash. On Mac or Linux, open the normal Terminal.</p>
+    </li>
+    <li>
+      <p><strong>Pick a folder.</strong> <code>pwd</code> shows where you are. <code>cd</code> moves you somewhere else.</p>
+<pre><span class="c"># where am I?</span>
+pwd
+<span class="c"># go to a folder for your keys (Git Bash on Windows style path)</span>
+cd /c/DevOps/keys</pre>
+    </li>
+    <li>
+      <p><strong>Create the key pair.</strong> Press Enter at the prompts to accept the defaults.</p>
+<pre>ssh-keygen -f mykey</pre>
+    </li>
+    <li>
+      <p><strong>Check what you got.</strong> Two files appear:</p>
+      <ul class="plain">
+        <li><code>mykey.pub</code>: the public key (the lock). Safe to upload.</li>
+        <li><code>mykey</code>: the private key. Keep it secret.</li>
+      </ul>
+<pre><span class="c"># print the public key so you can copy it</span>
+cat mykey.pub</pre>
+    </li>
+    <li>
+      <p><strong>Import the public key into AWS.</strong> In the AWS Console go to <strong>EC2 → Key Pairs → Actions → Import key pair</strong>, then paste the contents of <code>mykey.pub</code>.</p>
+    </li>
+    <li>
+      <p><strong>Use it.</strong> When you launch an EC2 instance, pick this key pair. You can then log in over SSH without a password.</p>
+    </li>
+  </ol>
+</section>
+
+<section id="check">
+  <h2>Quick check</h2>
+  <p>Answer in your head, then tap to see the answer.</p>
+  <div class="quiz">
+    <details><summary>Why do companies use the cloud instead of their own servers?</summary><p>No big upfront cost, no buildings or cooling to manage, servers in minutes, and you pay only for what you use.</p></details>
+    <details><summary>What's the difference between a region and an availability zone?</summary><p>A region is a place on the map. An availability zone is one or more separate data centers inside it. Using two zones keeps your app up if one fails.</p></details>
+    <details><summary>Is Linux an operating system?</summary><p>Not by itself. Linux is the kernel. Distros like Ubuntu and RHEL add tools around it to make a full OS.</p></details>
+    <details><summary>What source should you set for SSH in a security group?</summary><p>My IP (a /32 rule), never 0.0.0.0/0.</p></details>
+    <details><summary>Which key goes to AWS, and which stays with you?</summary><p>The public key (.pub) goes to AWS. The private key never leaves your machine.</p></details>
+  </div>
+</section>
+
+<section aria-labelledby="career">
+  <h2 id="career">From the Q&amp;A</h2>
+  <ul class="plain" style="margin-top:16px">
+    <li>DevSecOps work is mostly finding manual, repeated tasks and automating them with shell or Python scripts. Logic matters more than memorizing syntax.</li>
+    <li>Real skills last longer than shortcuts.</li>
+    <li>Background and age aren't barriers if your skills are sharp.</li>
+  </ul>
+</section>
+
+<footer>Summary of DevSecOps Session 02 (AWS infrastructure and Linux fundamentals).</footer>
+
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('sg');
+  if (!root) return;
+  var buttons = root.querySelectorAll('button[data-mode]');
+  var rule = document.getElementById('sg-rule');
+  var you = document.getElementById('sg-you');
+  var them = document.getElementById('sg-them');
+  var verdict = document.getElementById('sg-verdict');
+
+  function setMode(mode) {
+    buttons.forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-mode') === mode ? 'true' : 'false');
+    });
+    if (mode === 'anywhere') {
+      rule.textContent = 'Type: SSH   Port: 22   Source: 0.0.0.0/0';
+      them.className = 'link ok';
+      them.textContent = 'Allowed in too';
+      verdict.innerHTML = '<strong>Unsafe.</strong> Anyone on the internet can try to log in, and a stranger who gets in can delete your work.';
+    } else {
+      rule.textContent = 'Type: SSH   Port: 22   Source: <your-ip>/32';
+      them.className = 'link no';
+      them.textContent = 'Blocked at the firewall';
+      verdict.innerHTML = '<strong>Safe.</strong> Only your one IP address can connect. Everyone else is stopped before they reach the server.';
+    }
+    you.className = 'link ok';
+    you.textContent = 'Allowed in';
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); });
+  });
+  setMode('anywhere');
+})();
+</script>
+</body>
+</html>
