@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AWS and Linux basics in plain English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EDF1F4;
+    --surface: #FFFFFF;
+    --ink: #12202B;
+    --muted: #4B5B68;
+    --line: #D3DCE3;
+    --accent: #0B6E6E;
+    --accent-soft: #DDF0EE;
+    --warn: #8A5A00;
+    --warn-soft: #FBF0D6;
+    --term-bg: #0F1B24;
+    --term-ink: #D6E4EE;
+    --term-muted: #8CA0AF;
+    --term-line: #223341;
+    --term-hi: #7FD1C7;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0C1419; --surface: #131E26; --ink: #E4EDF3; --muted: #9AAEBB; --line: #24333E;
+      --accent: #5FD0C4; --accent-soft: #123330; --warn: #F0C36A; --warn-soft: #2E2410;
+      --term-bg: #0A1218; --term-line: #1D2B36;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0C1419; --surface: #131E26; --ink: #E4EDF3; --muted: #9AAEBB; --line: #24333E;
+    --accent: #5FD0C4; --accent-soft: #123330; --warn: #F0C36A; --warn-soft: #2E2410;
+    --term-bg: #0A1218; --term-line: #1D2B36;
+  }
+  html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 72px); scroll-behavior: smooth; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 17px; line-height: 1.6;
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  a { color: var(--accent); }
+  code { font-family: var(--font-mono); font-size: .9em; background: var(--accent-soft); color: var(--ink); padding: .08em .35em; border-radius: 4px; }
+
+  /* Hero */
+  .hero { max-width: 1120px; margin: 0 auto; padding: 44px 24px 12px; display: grid; gap: 28px; grid-template-columns: 1.1fr .9fr; align-items: center; }
+  .hero h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.05; letter-spacing: -.02em; margin: 0 0 14px; }
+  .hero p { margin: 0; color: var(--muted); max-width: 46ch; font-size: 1.08rem; }
+  .session { background: var(--term-bg); color: var(--term-ink); border-radius: 10px; padding: 18px 20px; font-family: var(--font-mono); font-size: .88rem; line-height: 1.75; overflow-x: auto; }
+  .session .p { color: var(--term-hi); }
+  .session .m { color: var(--term-muted); }
+
+  /* Layout */
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 44px; }
+  .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; padding-top: 24px; }
+  .side input { width: 100%; font: inherit; font-size: .92rem; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); margin-bottom: 14px; }
+  .side input:focus-visible, .c:focus-visible, .side a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .side ul { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+  .side li a { display: block; padding: 6px 14px; margin-left: -2px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: .95rem; }
+  .side li a:hover { color: var(--ink); }
+  .side li a.on { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+
+  main { min-width: 0; max-width: 760px; }
+  section { padding: 40px 0 8px; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: 0; padding-top: 24px; }
+  h2 { font-family: var(--font-display); font-weight: 800; font-size: 1.8rem; letter-spacing: -.01em; line-height: 1.15; margin: 0 0 8px; }
+  h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 28px 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 18px; }
+  p { margin: 0 0 14px; }
+
+  /* Sequence lists (used only for real sequences) */
+  ol.steps { list-style: none; counter-reset: s; margin: 16px 0 20px; padding: 0; }
+  ol.steps > li { counter-increment: s; position: relative; padding: 0 0 16px 46px; }
+  ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--surface); font-weight: 600; display: grid; place-items: center; font-size: .9rem; }
+  ol.steps > li::after { content: ""; position: absolute; left: 14px; top: 34px; bottom: 4px; width: 2px; background: var(--line); }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps strong { display: block; }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; padding: 0; list-style: none; counter-reset: f; }
+  .flow li { counter-increment: f; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: .93rem; }
+  .flow li::before { content: counter(f) ". "; color: var(--accent); font-weight: 600; }
+
+  /* Terminal panels: the one recurring device */
+  .term { background: var(--term-bg); color: var(--term-ink); border-radius: 10px; margin: 14px 0 22px; overflow: hidden; }
+  .term-title { padding: 10px 16px; font-size: .85rem; color: var(--term-muted); border-bottom: 1px solid var(--term-line); font-weight: 500; }
+  .cmd { display: grid; grid-template-columns: minmax(180px, 46%) 1fr; gap: 6px 16px; padding: 9px 16px; border-bottom: 1px solid var(--term-line); align-items: baseline; }
+  .cmd:last-child { border-bottom: 0; }
+  .cmd p { margin: 0; font-size: .93rem; color: var(--term-ink); opacity: .88; }
+  .cmd[hidden] { display: none; }
+  .c { all: unset; cursor: pointer; font-family: var(--font-mono); font-size: .88rem; color: var(--term-hi); padding: 2px 6px; margin: -2px -6px; border-radius: 4px; word-break: break-word; }
+  .c::before { content: "$ "; color: var(--term-muted); }
+  .c:hover { background: #ffffff14; }
+  .c.done::after { content: "  copied"; color: var(--term-muted); font-size: .78rem; }
+
+  /* Callouts */
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note p:last-child { margin: 0; }
+
+  /* Tables */
+  .tbl { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: .96rem; }
+  .tbl th, .tbl td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tbl th { font-weight: 600; width: 32%; color: var(--muted); }
+  .scroll { overflow-x: auto; }
+
+  /* Two-column compare */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0 20px; }
+  .two > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .two h4 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.02rem; }
+  .two p, .two ul { margin: 0; }
+  .two ul { padding-left: 18px; }
+
+  /* Passwd field strip */
+  .fields { display: flex; flex-wrap: wrap; gap: 0; font-family: var(--font-mono); font-size: .82rem; margin: 12px 0 18px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .fields div { flex: 1 1 90px; padding: 8px 10px; background: var(--surface); border-right: 1px solid var(--line); min-width: 90px; }
+  .fields div:last-child { border-right: 0; }
+  .fields b { display: block; font-family: var(--font-body); font-weight: 500; font-size: .74rem; color: var(--muted); margin-bottom: 2px; }
+  .fields .hi { background: var(--accent-soft); }
+
+  /* Vim modes */
+  .modes { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px 14px; align-items: center; margin: 16px 0; }
+  .mode { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .mode h4 { margin: 0 0 4px; font-family: var(--font-display); font-size: 1rem; }
+  .mode p { margin: 0; font-size: .92rem; color: var(--muted); }
+  .mode.home { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .arrow { font-size: .82rem; color: var(--muted); text-align: center; line-height: 1.3; }
+  .modes .full { grid-column: 1 / -1; }
+
+  footer { max-width: 1120px; margin: 0 auto; padding: 0 24px 40px; color: var(--muted); font-size: .9rem; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 28px; }
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    .side { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding: 10px 0 8px; margin: 0 -24px; padding-left: 24px; padding-right: 24px; border-bottom: 1px solid var(--line); }
+    .side input { margin-bottom: 8px; }
+    .side ul { display: flex; overflow-x: auto; border-left: 0; gap: 4px; }
+    .side li a { border-left: 0; border-bottom: 2px solid transparent; margin: 0; white-space: nowrap; padding: 4px 10px; }
+    .side li a.on { border-bottom-color: var(--accent); }
+    html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 110px); }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .cmd { grid-template-columns: 1fr; gap: 2px; }
+    .two { grid-template-columns: 1fr; }
+    .modes { grid-template-columns: 1fr; }
+    .arrow { text-align: left; }
+    .tbl th { width: 38%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div>
+    <h1>AWS and Linux basics, in plain English</h1>
+    <p>Session 03 on one page: start a Linux server on AWS, log in to it, and learn the commands you will use every day. Click any command to copy it.</p>
+  </div>
+  <div class="session" aria-label="Example terminal session">
+<span class="p">$</span> ssh -i mykey ec2-user@&lt;public-ip&gt;
+<span class="m"># you are now inside the server</span>
+<span class="p">[ec2-user@ip ~]$</span> whoami
+ec2-user
+<span class="p">[ec2-user@ip ~]$</span> pwd
+/home/ec2-user
+<span class="p">[ec2-user@ip ~]$</span> ls -ltr
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="side" aria-label="Sections">
+    <input id="q" type="search" placeholder="Filter commands" aria-label="Filter commands">
+    <ul>
+      <li><a href="#big">The big picture</a></li>
+      <li><a href="#ec2">EC2 server</a></li>
+      <li><a href="#ssh">Log in with SSH</a></li>
+      <li><a href="#orient">Where am I?</a></li>
+      <li><a href="#files">Files and folders</a></li>
+      <li><a href="#text">Read, write, search</a></li>
+      <li><a href="#slice">Slice data</a></li>
+      <li><a href="#tar">Archives</a></li>
+      <li><a href="#vim">Vim editor</a></li>
+      <li><a href="#career">Where this leads</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <section id="big">
+      <h2>The big picture</h2>
+      <p class="lead">You rent a small Linux computer from AWS, connect to it from your laptop, and control it by typing commands. That is the whole session.</p>
+      <ol class="flow">
+        <li>Launch an EC2 server</li>
+        <li>Open port 22</li>
+        <li>Log in with an SSH key</li>
+        <li>Run Linux commands</li>
+        <li>Automate it later</li>
+      </ol>
+      <div class="note"><p>Learn each task by hand first. Once you understand it, tools like Terraform, Ansible, and CI/CD pipelines will make sense.</p></div>
+    </section>
+
+    <section id="ec2">
+      <h2>EC2: your server in the cloud</h2>
+      <p class="lead">EC2 is AWS's service for renting virtual machines (called instances).</p>
+      <div class="scroll">
+      <table class="tbl">
+        <tr><th>Region</th><td>N. Virginia (<code>us-east-1</code>)</td></tr>
+        <tr><th>Operating system (AMI)</th><td>Amazon Linux, part of the Red Hat family</td></tr>
+        <tr><th>Size</th><td><code>t3.micro</code>: 2 vCPUs, 1 GB RAM, free tier</td></tr>
+        <tr><th>Disk</th><td>8 GB root volume</td></tr>
+        <tr><th>Login</th><td>Your imported SSH key pair</td></tr>
+      </table>
+      </div>
+      <div class="note warn"><p><strong>Watch the bill.</strong> The free tier gives roughly 100 to 200 in credits for about 2 to 3 months. Always terminate instances when you finish practicing.</p></div>
+
+      <h3>Security group: the server's firewall</h3>
+      <p>Nothing gets in unless a rule allows it. For SSH you add one inbound rule:</p>
+      <div class="scroll">
+      <table class="tbl">
+        <tr><th>Type and port</th><td>SSH, port <code>22</code></td></tr>
+        <tr><th>Source: My IP</th><td>Safest. But your home IP changes over time, so you may get locked out later.</td></tr>
+        <tr><th>Source: Anywhere</th><td><code>0.0.0.0/0</code>. Always works, but the whole internet can reach the port.</td></tr>
+        <tr><th>Outbound</th><td>Everything is allowed by default</td></tr>
+      </table>
+      </div>
+    </section>
+
+    <section id="ssh">
+      <h2>Log in with SSH</h2>
+      <p class="lead">SSH uses a key pair instead of a password: a public key that goes to AWS, and a private key that stays with you.</p>
+      <ol class="steps">
+        <li><strong>Create the key pair on your computer</strong>
+          <div class="term"><div class="cmd"><button class="c" data-copy="ssh-keygen -f mykey">ssh-keygen -f mykey</button><p>Makes <code>mykey</code> (private) and <code>mykey.pub</code> (public)</p></div></div>
+        </li>
+        <li><strong>Import the public key into AWS</strong>
+          Upload <code>mykey.pub</code> in the EC2 console under Key pairs, then pick it when you launch the instance. Never share the private key.
+        </li>
+        <li><strong>Connect</strong>
+          <div class="term"><div class="cmd"><button class="c" data-copy="ssh -i mykey ec2-user@<public-ip>">ssh -i mykey ec2-user@&lt;public-ip&gt;</button><p><code>-i</code> points to your private key. <code>ec2-user</code> is the default user on Amazon Linux.</p></div></div>
+        </li>
+        <li><strong>Leave when done</strong>
+          <div class="term"><div class="cmd"><button class="c" data-copy="exit">exit</button><p>Closes the SSH session</p></div></div>
+        </li>
+      </ol>
+      <div class="note warn"><p><strong>Error about a missing key file?</strong> SSH cannot find the key from where you are. Give the full absolute path, like <code>ssh -i /home/you/mykey ec2-user@&lt;public-ip&gt;</code>.</p></div>
+    </section>
+
+    <section id="orient">
+      <h2>Where am I? Who am I?</h2>
+      <div class="term">
+        <div class="term-title">Find your bearings</div>
+        <div class="cmd"><button class="c" data-copy="pwd">pwd</button><p>Print the folder you are in</p></div>
+        <div class="cmd"><button class="c" data-copy="whoami">whoami</button><p>Show your username</p></div>
+        <div class="cmd"><button class="c" data-copy="id">id</button><p>Show your user ID (UID) and group ID (GID)</p></div>
+        <div class="cmd"><button class="c" data-copy="uname">uname</button><p>Kernel name</p></div>
+        <div class="cmd"><button class="c" data-copy="uname -a">uname -a</button><p>All system info</p></div>
+        <div class="cmd"><button class="c" data-copy="uname -v">uname -v</button><p>Kernel version</p></div>
+        <div class="cmd"><button class="c" data-copy="uname -i">uname -i</button><p>Hardware architecture</p></div>
+        <div class="cmd"><button class="c" data-copy="clear">clear</button><p>Wipe the screen</p></div>
+        <div class="cmd"><button class="c" data-copy="history">history</button><p>List commands you ran before</p></div>
+      </div>
+      <p><strong>UIDs tell you the kind of user.</strong> UIDs 0 to 999 are system accounts. UIDs 1000 and up are real people.</p>
+
+      <h3>Absolute vs relative paths</h3>
+      <div class="two">
+        <div><h4>Absolute</h4><p>Starts at the root <code>/</code>. Works from anywhere, so it is the reliable choice.</p><p><code>/home/ec2-user</code></p></div>
+        <div><h4>Relative</h4><p>Starts from the folder you are in.</p><ul><li><code>.</code> means here</li><li><code>..</code> means the parent folder</li></ul></div>
+      </div>
+      <div class="note"><p>Linux is case sensitive. <code>Devops</code> and <code>devops</code> are two different names.</p></div>
+    </section>
+
+    <section id="files">
+      <h2>Files and folders</h2>
+      <p class="lead">Everything you do with files is one of four things: Create, Read, Update, Delete (CRUD).</p>
+      <div class="term">
+        <div class="term-title">Create</div>
+        <div class="cmd"><button class="c" data-copy="touch notes.txt">touch notes.txt</button><p>Make an empty file</p></div>
+        <div class="cmd"><button class="c" data-copy="mkdir project">mkdir project</button><p>Make a folder</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">List and read</div>
+        <div class="cmd"><button class="c" data-copy="ls">ls</button><p>Names only</p></div>
+        <div class="cmd"><button class="c" data-copy="ls -l">ls -l</button><p>Long list. First character: <code>-</code> file, <code>d</code> directory</p></div>
+        <div class="cmd"><button class="c" data-copy="ls -la">ls -la</button><p>Include hidden files</p></div>
+        <div class="cmd"><button class="c" data-copy="ls -lt">ls -lt</button><p>Sort by time, newest first</p></div>
+        <div class="cmd"><button class="c" data-copy="ls -ltr">ls -ltr</button><p>Sort by time, newest at the bottom</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">Update: copy, move, rename</div>
+        <div class="cmd"><button class="c" data-copy="cp a.txt b.txt">cp a.txt b.txt</button><p>Copy a file</p></div>
+        <div class="cmd"><button class="c" data-copy="cp -r project project-backup">cp -r project project-backup</button><p>Copy a folder (<code>-r</code> means recursive)</p></div>
+        <div class="cmd"><button class="c" data-copy="mv a.txt project/">mv a.txt project/</button><p>Move a file (cut and paste)</p></div>
+        <div class="cmd"><button class="c" data-copy="mv old.txt new.txt">mv old.txt new.txt</button><p>Rename a file</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">Delete</div>
+        <div class="cmd"><button class="c" data-copy="rm notes.txt">rm notes.txt</button><p>Delete a file</p></div>
+        <div class="cmd"><button class="c" data-copy="rm -r project">rm -r project</button><p>Delete a folder and everything in it</p></div>
+      </div>
+      <div class="note warn"><p>There is no recycle bin. Deleted means gone, so check the name before you press Enter.</p></div>
+    </section>
+
+    <section id="text">
+      <h2>Read, write, and search text</h2>
+      <div class="term">
+        <div class="term-title">Write and read files</div>
+        <div class="cmd"><button class="c" data-copy="cat notes.txt">cat notes.txt</button><p>Show a file</p></div>
+        <div class="cmd"><button class="c" data-copy="cat > notes.txt">cat &gt; notes.txt</button><p>Overwrite the file. Type your text, press Enter, then Ctrl+D to save</p></div>
+        <div class="cmd"><button class="c" data-copy="cat >> notes.txt">cat &gt;&gt; notes.txt</button><p>Add to the end without erasing</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">Get files from the web</div>
+        <div class="cmd"><button class="c" data-copy="wget <url>">wget &lt;url&gt;</button><p>Download and save to disk</p></div>
+        <div class="cmd"><button class="c" data-copy="curl <url>">curl &lt;url&gt;</button><p>Print the content on screen instead</p></div>
+      </div>
+
+      <h3>Pipes: chain commands</h3>
+      <p>The pipe <code>|</code> sends the output of one command into the next one.</p>
+      <div class="term">
+        <div class="cmd"><button class="c" data-copy="cat app.log | grep error">cat app.log | grep error</button><p>Show only lines containing "error"</p></div>
+      </div>
+
+      <h3>Search with grep</h3>
+      <div class="term">
+        <div class="cmd"><button class="c" data-copy="grep error app.log">grep error app.log</button><p>Lines that match</p></div>
+        <div class="cmd"><button class="c" data-copy="grep -i error app.log">grep -i error app.log</button><p>Ignore upper or lower case</p></div>
+        <div class="cmd"><button class="c" data-copy="grep -n error app.log">grep -n error app.log</button><p>Show line numbers</p></div>
+        <div class="cmd"><button class="c" data-copy="grep -c error app.log">grep -c error app.log</button><p>Count the matches</p></div>
+        <div class="cmd"><button class="c" data-copy="grep -v error app.log">grep -v error app.log</button><p>Show lines that do not match</p></div>
+      </div>
+
+      <h3>Top and bottom of a file</h3>
+      <div class="term">
+        <div class="cmd"><button class="c" data-copy="head app.log">head app.log</button><p>First 10 lines</p></div>
+        <div class="cmd"><button class="c" data-copy="head -n 5 app.log">head -n 5 app.log</button><p>First 5 lines</p></div>
+        <div class="cmd"><button class="c" data-copy="tail app.log">tail app.log</button><p>Last 10 lines</p></div>
+        <div class="cmd"><button class="c" data-copy="tail -n 5 app.log">tail -n 5 app.log</button><p>Last 5 lines</p></div>
+        <div class="cmd"><button class="c" data-copy="head -n 13 app.log | tail -n 8">head -n 13 app.log | tail -n 8</button><p>Lines 6 to 13: take the first 13, then the last 8 of those</p></div>
+      </div>
+    </section>
+
+    <section id="slice">
+      <h2>Slice data with cut and awk</h2>
+      <p class="lead">Both tools pull columns out of structured text. The file <code>/etc/passwd</code> is a good practice target: one user per line, fields split by a colon.</p>
+      <div class="fields" aria-label="Fields of a passwd line">
+        <div><b>1 username</b>ec2-user</div>
+        <div><b>2 password</b>x</div>
+        <div class="hi"><b>3 UID</b>1000</div>
+        <div><b>4 GID</b>1000</div>
+        <div><b>5 comment</b>EC2 User</div>
+        <div><b>6 home</b>/home/ec2-user</div>
+        <div><b>7 shell</b>/bin/bash</div>
+      </div>
+      <div class="term">
+        <div class="term-title">cut: grab a field</div>
+        <div class="cmd"><button class="c" data-copy="cut -d ':' -f1 /etc/passwd">cut -d ':' -f1 /etc/passwd</button><p>List all usernames. <code>-d</code> is the delimiter, <code>-f</code> is the field number</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">awk: grab a field and add logic</div>
+        <div class="cmd"><button class="c" data-copy="awk -F ':' '{print $NF}' /etc/passwd">awk -F ':' '{print $NF}' /etc/passwd</button><p><code>-F</code> sets the delimiter. <code>$NF</code> is the last field (the shell)</p></div>
+        <div class="cmd"><button class="c" data-copy="awk -F ':' '$3 > 999 {print $1}' /etc/passwd">awk -F ':' '$3 &gt; 999 {print $1}' /etc/passwd</button><p>Human users only (UID above 999)</p></div>
+        <div class="cmd"><button class="c" data-copy="awk -F ':' '$3 <= 999 {print $1}' /etc/passwd">awk -F ':' '$3 &lt;= 999 {print $1}' /etc/passwd</button><p>System users only</p></div>
+      </div>
+      <p>Rule of thumb: use <code>cut</code> for a simple column, <code>awk</code> when you need a condition.</p>
+    </section>
+
+    <section id="tar">
+      <h2>Archives with tar</h2>
+      <p class="lead">A <code>.tar.gz</code> file bundles many files into one (tar) and shrinks it (gzip).</p>
+      <div class="term">
+        <div class="cmd"><button class="c" data-copy="tar -czf backup.tar.gz project">tar -czf backup.tar.gz project</button><p>Create an archive from a folder</p></div>
+        <div class="cmd"><button class="c" data-copy="tar -tzvf backup.tar.gz">tar -tzvf backup.tar.gz</button><p>Look inside without extracting</p></div>
+        <div class="cmd"><button class="c" data-copy="tar -xzf backup.tar.gz">tar -xzf backup.tar.gz</button><p>Extract it</p></div>
+      </div>
+      <div class="scroll">
+      <table class="tbl">
+        <tr><th>Flags</th><td><code>c</code> create, <code>x</code> extract, <code>t</code> list, <code>z</code> gzip, <code>f</code> file name, <code>v</code> verbose</td></tr>
+      </table>
+      </div>
+    </section>
+
+    <section id="vim">
+      <h2>Vim: the terminal text editor</h2>
+      <p class="lead">Vim confuses beginners because it has modes. Keys do different things depending on the mode you are in.</p>
+      <div class="term"><div class="cmd"><button class="c" data-copy="vim notes.txt">vim notes.txt</button><p>Open a file (or create it)</p></div></div>
+      <div class="modes">
+        <div class="mode home"><h4>Escape mode</h4><p>The default. You start here. You cannot type text yet.</p></div>
+        <div class="arrow">press <code>i</code><br>&rarr;<br>&larr;<br>press <code>Esc</code></div>
+        <div class="mode"><h4>Insert mode</h4><p>Type text. The footer shows <code>-- INSERT --</code>.</p></div>
+        <div class="arrow full" style="text-align:left">From Escape mode, press <code>:</code> to open Colon mode</div>
+        <div class="mode full"><h4>Colon mode</h4><p>Type a command at the bottom, then press Enter.</p></div>
+      </div>
+      <div class="term">
+        <div class="term-title">Colon commands</div>
+        <div class="cmd"><button class="c" data-copy=":wq">:wq</button><p>Save and quit</p></div>
+        <div class="cmd"><button class="c" data-copy=":q">:q</button><p>Quit (no changes made)</p></div>
+        <div class="cmd"><button class="c" data-copy=":q!">:q!</button><p>Quit and throw away changes</p></div>
+      </div>
+      <div class="note"><p>Stuck? Press <code>Esc</code> first, every time. Then type your colon command.</p></div>
+    </section>
+
+    <section id="career">
+      <h2>Where this leads</h2>
+      <p class="lead">These basics are the foundation for the automation roles in the industry.</p>
+      <div class="scroll">
+      <table class="tbl">
+        <tr><th>SRE</th><td>DevOps plus monitoring, keeping systems reliable</td></tr>
+        <tr><th>Platform engineering</th><td>Building the internal tools other developers use</td></tr>
+        <tr><th>DevSecOps</th><td>Adding security checks into the delivery pipeline</td></tr>
+      </table>
+      </div>
+      <div class="two">
+        <div><h4>CI (continuous integration)</h4><p>Build and test every change automatically.</p></div>
+        <div><h4>CD (continuous delivery)</h4><p>Deploy the tested change automatically.</p></div>
+      </div>
+
+      <h3>Shared responsibility: who secures what?</h3>
+      <div class="two">
+        <div><h4>You</h4><ul><li>The operating system</li><li>Security groups</li><li>Your application code</li></ul></div>
+        <div><h4>AWS</h4><ul><li>Physical data centers</li><li>Host hardware</li><li>The hypervisor</li></ul></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>Tip: use the filter box to find a command fast.</footer>
+
+<script>
+(function () {
+  // Click to copy
+  function copyText(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacy(text); });
+      }
+    } catch (e) {}
+    return Promise.resolve(legacy(text));
+  }
+  function legacy(text) {
+    try {
+      var t = document.createElement('textarea');
+      t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(t);
+      return ok;
+    } catch (e) { return false; }
+  }
+  document.querySelectorAll('.c').forEach(function (b) {
+    b.setAttribute('role', 'button');
+    b.setAttribute('tabindex', '0');
+    function go() {
+      var text = b.getAttribute('data-copy') || b.textContent;
+      copyText(text).then(function (ok) {
+        if (ok) {
+          b.classList.add('done');
+          setTimeout(function () { b.classList.remove('done'); }, 1400);
+        }
+      });
+    }
+    b.addEventListener('click', go);
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+    });
+  });
+
+  // Filter commands
+  var q = document.getElementById('q');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.cmd'));
+  q.addEventListener('input', function () {
+    var v = q.value.trim().toLowerCase();
+    rows.forEach(function (r) {
+      r.hidden = v !== '' && r.textContent.toLowerCase().indexOf(v) === -1;
+    });
+    document.querySelectorAll('.term').forEach(function (t) {
+      var any = Array.prototype.some.call(t.querySelectorAll('.cmd'), function (r) { return !r.hidden; });
+      t.style.display = any ? '' : 'none';
+    });
+  });
+
+  // Highlight current section in the nav
+  var links = Array.prototype.slice.call(document.querySelectorAll('.side a'));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          links.forEach(function (a) { a.classList.remove('on'); });
+          var a = map[en.target.id];
+          if (a) a.classList.add('on');
+        }
+      });
+    }, { rootMargin: '-15% 0px -70% 0px' });
+    document.querySelectorAll('main section').forEach(function (s) { io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>
